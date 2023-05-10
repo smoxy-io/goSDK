@@ -1,7 +1,7 @@
 package EventBus
 
 import (
-	"goSDK/util/events"
+	"github.com/smoxy-io/goSDK/util/events"
 )
 
 // event router for the event bus
