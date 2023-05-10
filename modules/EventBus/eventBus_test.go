@@ -1,7 +1,7 @@
 package EventBus
 
 import (
-	"goSDK/util/events"
+	"github.com/smoxy-io/goSDK/util/events"
 	"reflect"
 	"sync"
 	"testing"

@@ -1,8 +1,8 @@
 package maps
 
 import (
-	"goSDK/util/arrays"
-	"goSDK/util/interfaces"
+	"github.com/smoxy-io/goSDK/util/arrays"
+	"github.com/smoxy-io/goSDK/util/interfaces"
 	"reflect"
 	"testing"
 )

@@ -1,7 +1,7 @@
 package arrays
 
 import (
-	"goSDK/util/interfaces"
+	"github.com/smoxy-io/goSDK/util/interfaces"
 	"reflect"
 	"testing"
 )

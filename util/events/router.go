@@ -2,7 +2,7 @@ package events
 
 import (
 	"errors"
-	"goSDK/util/maps"
+	"github.com/smoxy-io/goSDK/util/maps"
 	"sync"
 	"sync/atomic"
 )
