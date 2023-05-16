@@ -128,11 +128,15 @@ func TestClone(t *testing.T) {
 	m2 := m
 	m3 := Clone(m)
 
+	m["foo"] = 4
+
 	if !reflect.DeepEqual(m2, m) {
 		t.Errorf("map assignment should result in a copy by referrence")
+		t.Errorf("wanted: %v, got: %v", m, m2)
 	}
 
 	if reflect.DeepEqual(m3, m) {
 		t.Errorf("Clone() should result in a new map")
+		t.Errorf("not wanted: %v, got: %v", m, m3)
 	}
 }
