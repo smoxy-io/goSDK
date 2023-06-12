@@ -92,10 +92,10 @@ func (e *loggerCore) clone() *loggerCore {
 	}
 }
 
-func InitLogger(logLevel string, encoding string, options ...zap.Option) (*zap.Logger, error) {
+func InitLogger(logLevel string, encoding logs.Encoding, options ...zap.Option) (*zap.Logger, error) {
 	var newEncoder func(cfg zapcore.EncoderConfig) zapcore.Encoder
 
-	cfg, err := logs.NewLoggerConfig(logLevel, logs.Encoding(encoding))
+	cfg, err := logs.NewLoggerConfig(logLevel, encoding)
 
 	if err != nil {
 		return nil, err
