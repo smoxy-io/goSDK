@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package smoxy.util.db.dgraph;
+
+option go_package = "github.com/smoxy-io/goSDK/proto/smoxy/util/db/dgraph";
+
+message SchemaMetaData {
+  string id = 1;
+  string version = 2;
+  optional string lastUpdateTime = 3;
+  optional string lastMigrationTime = 4;
+  optional MigrationStatus lastMigrationStatus = 5;
+  optional bool isMigrating = 6;
+  repeated Migration migrations = 7;
+}
+
+message Migration {
+  string id = 1;
+  string fromVersion = 2;
+  string toVersion = 3;
+  MigrationStatus lastStatus = 4;
+  repeated MigrationResult results = 5;
+}
+
+message MigrationResult {
+  string id = 1;
+  Migration migration = 2;
+  string startTime = 3;
+  optional string endTime = 4;
+  MigrationStatus status = 5;
+}
+
+enum MigrationStatus {
+  SUCCESS = 0;
+  ROLLED_BACK = 1;
+  FAILED = 2;
+  IN_PROGRESS = 3;
+}
