@@ -13,6 +13,7 @@ type ApiKey interface {
 	GetId() string
 	GetIsActive() bool
 	GetRoles() []ApiKeyRole
+	GetUser() User
 }
 
 func VerifyApiKey(key ApiKey) (*UserClaims, error, int) {
@@ -22,14 +23,14 @@ func VerifyApiKey(key ApiKey) (*UserClaims, error, int) {
 
 	// TODO: verify signature
 
-	roles := make([]string, 0)
+	r := make([]string, 0)
 
 	for _, role := range key.GetRoles() {
-		roles = append(roles, role.GetName())
+		r = append(r, role.GetName())
 	}
 
 	claims := &UserClaims{
-		Roles:  roles,
+		Roles:  r,
 		Issuer: jwtIssuer,
 	}
 

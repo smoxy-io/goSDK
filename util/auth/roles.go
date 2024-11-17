@@ -111,6 +111,18 @@ func NewRoleFromString(roles ...string) Role {
 	return NewRole(r...)
 }
 
+func NewRoleFromApiKeyRole(roles ...ApiKeyRole) Role {
+	r := []Role{}
+
+	for _, protoRole := range roles {
+		if role, ok := nameRoleMap[protoRole.GetName()]; ok {
+			r = append(r, role)
+		}
+	}
+
+	return NewRole(r...)
+}
+
 func IsAuthorized(route string, roles ...string) bool {
 	role := NewRoleFromString(roles...)
 
