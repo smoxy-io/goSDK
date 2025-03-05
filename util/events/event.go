@@ -21,7 +21,7 @@ func NewEvent(routingKey RoutingKey, msg any) Event {
 
 func (e Event) IsValid() (bool, error) {
 	if !e.RoutingKey.IsValid() {
-		return false, errors.New("invalid routing key")
+		return false, errors.New("invalid routing key: " + e.RoutingKey.String())
 	}
 
 	if e.Msg == nil {
