@@ -21,7 +21,7 @@ var sigHandlers map[os.Signal]SignalHandler = map[os.Signal]SignalHandler{
 // RegisterSignalHandler registers a handler function for a signal.
 // registering a handler for a signal that already has a handler will replace the
 // old handler with the new handler
-func RegisterSignalHandler(sig syscall.Signal, handler SignalHandler) {
+func RegisterSignalHandler(sig os.Signal, handler SignalHandler) {
 	sigHandlers[sig] = handler
 }
 
