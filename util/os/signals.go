@@ -11,6 +11,7 @@ import (
 // return true to exit signal handling (implies that the main process will exit)
 type SignalHandler func(sig os.Signal) (exit bool)
 
+var sigs chan os.Signal
 var sigHandlerChan chan bool
 var sigHandlers map[os.Signal]SignalHandler = map[os.Signal]SignalHandler{
 	syscall.SIGINT:  DefaultSigIntHandler,
@@ -35,7 +36,7 @@ func WaitForExitSignal() {
 // StartSignalHandler starts the signal handler go routine
 // all signal handlers MUST be registered with RegisterSignalHandler BEFORE to calling this function
 func StartSignalHandler() {
-	sigs := make(chan os.Signal, 128) // large buffer because we are listening for all signals
+	sigs = make(chan os.Signal, 128) // large buffer because we are listening for all signals
 	sigHandlerChan = make(chan bool, 1)
 
 	// by default, only SIGINT or SIGTERM will cause the process to exit
@@ -82,4 +83,10 @@ func DefaultSigIntHandler(_ os.Signal) bool {
 
 func DefaultSigTermHandler(_ os.Signal) bool {
 	return true
+}
+
+// SendSignal sends an os signal to the signal handler. allows complex applications a chance to exit gracefully from
+// anywhere within the application
+func SendSignal(sig os.Signal) {
+	sigs <- sig
 }
