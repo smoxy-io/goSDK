@@ -60,6 +60,17 @@ func StartSignalHandler() {
 				continue
 			}
 
+			// check for handler that should be called for all signals
+			// if this handler returns false, then we will check for a signal specific handler
+			// this can be useful for logging all signals received by the process or propagating signals
+			// using an application specific method
+			if hndlr, ok := sigHandlers[SIGALL]; ok {
+				if hndlr(sig) {
+					sigHandlerChan <- true
+					continue
+				}
+			}
+
 			// check for a registered signal handler
 			handler, ok := sigHandlers[sig]
 
