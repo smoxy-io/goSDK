@@ -192,7 +192,7 @@ func RegisterRole(name string) Role {
 		return r
 	}
 
-	r := 1 << (len(roles) - 1)
+	var r Role = 1 << (len(roles) - 1)
 
 	roles = append(roles, r)
 	nameRoleMap[name] = r
