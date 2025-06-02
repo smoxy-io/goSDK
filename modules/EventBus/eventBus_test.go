@@ -3,6 +3,7 @@ package EventBus
 import (
 	"github.com/smoxy-io/goSDK/util/events"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -44,7 +45,7 @@ func TestPublish(t *testing.T) {
 
 	err = Publish("foo.*.bar", "test")
 
-	if err == nil || err.Error() != "invalid routing key" {
+	if err == nil || !strings.Contains(err.Error(), "invalid routing key") {
 		t.Errorf("error = '%v', wanted = '%v'", err, "invalid routing key")
 	}
 

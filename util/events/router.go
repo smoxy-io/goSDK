@@ -3,8 +3,8 @@ package events
 import (
 	"errors"
 	"github.com/smoxy-io/goSDK/util/maps"
+	syncutil "github.com/smoxy-io/goSDK/util/sync"
 	"sync"
-	"sync/atomic"
 )
 
 const (
@@ -20,20 +20,18 @@ type RoutingPair struct {
 
 type EventRouter struct {
 	subscribers     map[Topic][]RoutingPair
+	subscribersLock *syncutil.NamedLock
 	topicMatchCache map[RoutingKey][]*Topic
 	eventChan       chan Event
 	eventWg         *sync.WaitGroup
-	_subscribers    atomic.Pointer[map[Topic][]RoutingPair]
 }
 
 func NewEventRouter() *EventRouter {
 	evr := EventRouter{
-		eventWg:     new(sync.WaitGroup),
-		subscribers: map[Topic][]RoutingPair{},
+		eventWg:         new(sync.WaitGroup),
+		subscribers:     map[Topic][]RoutingPair{},
+		subscribersLock: syncutil.NewNamedLock(),
 	}
-
-	// initialize the _subscribers member
-	evr.reload()
 
 	return &evr
 }
@@ -77,13 +75,15 @@ func (er *EventRouter) Subscribe(topic Topic) (Subscriber, error) {
 	}
 
 	subscription := make(chan Event, SubscriberBufferSize)
+
+	er.subscribersLock.Lock(topic.String())
+	defer er.subscribersLock.Unlock(topic.String())
+
 	er.subscribers[topic] = append(er.subscribers[topic], RoutingPair{
 		Channel:    subscription,
 		Publisher:  subscription,
 		Subscriber: subscription,
 	})
-
-	er.reload()
 
 	return subscription, nil
 }
@@ -103,12 +103,13 @@ func (er *EventRouter) Unsubscribe(topic Topic, subscription Subscriber) error {
 		return err
 	}
 
-	er.reload()
-
 	return nil
 }
 
 func (er *EventRouter) removeSubscriber(topic Topic, subscription Subscriber) error {
+	er.subscribersLock.Lock(topic.String())
+	defer er.subscribersLock.Unlock(topic.String())
+
 	subscriptions, ok := er.subscribers[topic]
 
 	if !ok {
@@ -146,11 +147,6 @@ func (er *EventRouter) removeSubscriber(topic Topic, subscription Subscriber) er
 	return nil
 }
 
-func (er *EventRouter) reload() {
-	tmpSubscribers := maps.Clone(er.subscribers)
-	er._subscribers.Swap(&tmpSubscribers)
-}
-
 func (er *EventRouter) unsubscribeAll() {
 	for t, pairs := range er.subscribers {
 		for _, p := range pairs {
@@ -158,8 +154,6 @@ func (er *EventRouter) unsubscribeAll() {
 			_ = er.removeSubscriber(t, p.Subscriber)
 		}
 	}
-
-	er.reload()
 }
 
 // this is the main event loop.  it is run inside a go routine
@@ -186,7 +180,7 @@ func (er *EventRouter) routeEvents(eventChan <-chan Event) {
 
 func (er *EventRouter) routeEvent(event Event) {
 	// load the current subscriber list
-	subscribers := *er._subscribers.Load()
+	subscribers := maps.Clone(er.subscribers)
 
 	if len(subscribers) < 1 {
 		// no subscribers

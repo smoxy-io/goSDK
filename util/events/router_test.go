@@ -35,10 +35,6 @@ func TestEventRouter_Subscribe_Publish_Unsubscribe(t *testing.T) {
 		t.Errorf("subscriptions not being tracked correctly after subscribe.  EventRouter.subscribers: %v", er.subscribers)
 	}
 
-	if subs, ok := (*er._subscribers.Load())[topic]; !ok || len(subs) != 1 || subs[0].Subscriber != subscription {
-		t.Errorf("subscriptions not loaded into event routing go routine after subscribe.  EventRouter._subscribers: %v", *er._subscribers.Load())
-	}
-
 	routingKey := RoutingKey("foo.bar")
 	msg := 1
 	if err := er.Publish(routingKey, msg); err != nil {
@@ -57,10 +53,6 @@ func TestEventRouter_Subscribe_Publish_Unsubscribe(t *testing.T) {
 
 	if len(er.subscribers) != 0 {
 		t.Errorf("subscriptions not being tracked correctly after unsubscribe.  EventRouter.subscribers: %v", er.subscribers)
-	}
-
-	if len(*er._subscribers.Load()) != 0 {
-		t.Errorf("subscriptions not loaded into event routing go routine after unsubscribe.  EventRouter._subscribers: %v", *er._subscribers.Load())
 	}
 
 	er.Stop()
@@ -113,10 +105,6 @@ func TestEventRouter_SubscribeMultiple(t *testing.T) {
 		t.Errorf("topic '%v' has %v subscriber(s), wanted %v", topic1, len(er.subscribers[topic1]), 2)
 	}
 
-	if len((*er._subscribers.Load())[topic1]) != 2 {
-		t.Errorf("topic '%v' has %v _subscriber(s), wanted %v", topic1, len((*er._subscribers.Load())[topic1]), 2)
-	}
-
 	subFoo1, _ := er.Subscribe(topic2)
 	subFoo2, _ := er.Subscribe(topic2)
 
@@ -124,26 +112,18 @@ func TestEventRouter_SubscribeMultiple(t *testing.T) {
 		t.Errorf("topic '%v' has %v subscriber(s), wanted %v", topic2, len(er.subscribers[topic2]), 2)
 	}
 
-	if len((*er._subscribers.Load())[topic2]) != 2 {
-		t.Errorf("topic '%v' has %v _subscriber(s), wanted %v", topic2, len((*er._subscribers.Load())[topic2]), 2)
-	}
-
 	if len(er.subscribers) != 2 {
 		t.Errorf("%v topic(s) subscribed to, wanted %v", len(er.subscribers), 2)
 	}
 
-	if len(*er._subscribers.Load()) != 2 {
-		t.Errorf("%v topic(s) subscribed to, wanted %v", len(*er._subscribers.Load()), 2)
-	}
-
-	st1, ok := (*er._subscribers.Load())[topic1]
+	st1, ok := (er.subscribers)[topic1]
 
 	if !ok {
 		t.Errorf("no subscribers for topic: %v", topic1)
 	}
 
 	if len(st1) != 2 {
-		t.Errorf("len(EventRouter._subscribers[%v]) = %v, wanted %v", len(st1), topic1, 2)
+		t.Errorf("len(EventRouter_subscribers[%v]) = %v, wanted %v", len(st1), topic1, 2)
 	}
 
 	wg := sync.WaitGroup{}
@@ -195,10 +175,6 @@ func TestEventRouter_SubscribeMultiple(t *testing.T) {
 		t.Errorf("%v topic(s) subscribed to, wanted %v", len(er.subscribers), 0)
 	}
 
-	if len(*er._subscribers.Load()) != 0 {
-		t.Errorf("%v topic(s) subscribed to, wanted %v", len(*er._subscribers.Load()), 0)
-	}
-
 	wg.Wait()
 
 	if len(resAll1) != expectedTopic1 {
@@ -224,5 +200,4 @@ func TestEventRouter_SubscribeMultiple(t *testing.T) {
 	if !reflect.DeepEqual(resFoo1, resFoo2) {
 		t.Errorf("All subscribers to topic '%v' should receive the same events.  %v != %v", topic2, resFoo1, resFoo2)
 	}
-
 }
