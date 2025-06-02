@@ -20,7 +20,8 @@ type RoutingPair struct {
 
 type EventRouter struct {
 	subscribers     map[Topic][]RoutingPair
-	subscribersLock *syncutil.NamedLock
+	subscribersLock *sync.RWMutex
+	topicLock       *syncutil.NamedLock
 	topicMatchCache map[RoutingKey][]*Topic
 	eventChan       chan Event
 	eventWg         *sync.WaitGroup
@@ -30,7 +31,8 @@ func NewEventRouter() *EventRouter {
 	evr := EventRouter{
 		eventWg:         new(sync.WaitGroup),
 		subscribers:     map[Topic][]RoutingPair{},
-		subscribersLock: syncutil.NewNamedLock(),
+		subscribersLock: &sync.RWMutex{},
+		topicLock:       syncutil.NewNamedLock(),
 	}
 
 	return &evr
@@ -76,8 +78,11 @@ func (er *EventRouter) Subscribe(topic Topic) (Subscriber, error) {
 
 	subscription := make(chan Event, SubscriberBufferSize)
 
-	er.subscribersLock.Lock(topic.String())
-	defer er.subscribersLock.Unlock(topic.String())
+	er.subscribersLock.Lock()
+	defer er.subscribersLock.Unlock()
+
+	er.topicLock.Lock(topic.String())
+	defer er.topicLock.Unlock(topic.String())
 
 	er.subscribers[topic] = append(er.subscribers[topic], RoutingPair{
 		Channel:    subscription,
@@ -107,13 +112,14 @@ func (er *EventRouter) Unsubscribe(topic Topic, subscription Subscriber) error {
 }
 
 func (er *EventRouter) removeSubscriber(topic Topic, subscription Subscriber) error {
-	er.subscribersLock.Lock(topic.String())
-	defer er.subscribersLock.Unlock(topic.String())
+	er.subscribersLock.RLock()
 
 	subscriptions, ok := er.subscribers[topic]
 
+	er.subscribersLock.RUnlock()
+
 	if !ok {
-		// no subscribers for this topic.  no need to reload handlers
+		// no subscribers for this topic
 		return nil
 	}
 
@@ -136,6 +142,12 @@ func (er *EventRouter) removeSubscriber(topic Topic, subscription Subscriber) er
 
 	// close the channel
 	close(pair.Channel)
+
+	er.subscribersLock.Lock()
+	defer er.subscribersLock.Unlock()
+
+	er.topicLock.Lock(topic.String())
+	defer er.topicLock.Unlock(topic.String())
 
 	er.subscribers[topic] = append(er.subscribers[topic][:sIndex], er.subscribers[topic][sIndex+1:]...)
 
@@ -180,7 +192,11 @@ func (er *EventRouter) routeEvents(eventChan <-chan Event) {
 
 func (er *EventRouter) routeEvent(event Event) {
 	// load the current subscriber list
+	er.subscribersLock.RLock()
+
 	subscribers := maps.Clone(er.subscribers)
+
+	er.subscribersLock.RUnlock()
 
 	if len(subscribers) < 1 {
 		// no subscribers
