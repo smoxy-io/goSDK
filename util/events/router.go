@@ -25,6 +25,7 @@ type EventRouter struct {
 	topicMatchCache map[RoutingKey][]*Topic
 	eventChan       chan Event
 	eventWg         *sync.WaitGroup
+	stop            chan bool
 }
 
 func NewEventRouter() *EventRouter {
@@ -43,6 +44,8 @@ func (er *EventRouter) Start() {
 		return
 	}
 
+	er.stop = make(chan bool, 1)
+
 	er.eventChan = make(chan Event, EventBufferSize)
 	er.eventWg.Add(1)
 
@@ -58,6 +61,7 @@ func (er *EventRouter) Stop() {
 
 	er.eventWg.Add(1)
 
+	close(er.stop)
 	close(er.eventChan)
 
 	er.eventWg.Wait()
@@ -240,7 +244,12 @@ func (er *EventRouter) PublishEvent(event Event) error {
 		return errors.New("cannot publish event.  event router not started")
 	}
 
-	er.eventChan <- event
+	select {
+	case <-er.stop:
+		return errors.New("cannot publish event. event router stopped")
+	default:
+		er.eventChan <- event
+	}
 
 	return nil
 }
