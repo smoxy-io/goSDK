@@ -8,7 +8,7 @@ require (
 	github.com/dgraph-io/dgo/v230 v230.0.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-errors/errors v1.5.1
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/magefile/mage v1.15.0
 	github.com/schollz/progressbar/v3 v3.17.1
 	github.com/shurcooL/graphql v0.0.0-20230722043721-ed46e5a46466
