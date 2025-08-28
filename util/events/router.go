@@ -2,9 +2,10 @@ package events
 
 import (
 	"errors"
+	"sync"
+
 	"github.com/smoxy-io/goSDK/util/maps"
 	syncutil "github.com/smoxy-io/goSDK/util/sync"
-	"sync"
 )
 
 const (
@@ -21,7 +22,7 @@ type RoutingPair struct {
 type EventRouter struct {
 	subscribers     map[Topic][]RoutingPair
 	subscribersLock *sync.RWMutex
-	topicLock       *syncutil.NamedLock
+	topicLock       *syncutil.NamedRWLock
 	topicMatchCache map[RoutingKey][]*Topic
 	eventChan       chan Event
 	eventWg         *sync.WaitGroup
@@ -33,7 +34,7 @@ func NewEventRouter() *EventRouter {
 		eventWg:         new(sync.WaitGroup),
 		subscribers:     map[Topic][]RoutingPair{},
 		subscribersLock: &sync.RWMutex{},
-		topicLock:       syncutil.NewNamedLock(),
+		topicLock:       syncutil.NewNamedRWLock(),
 	}
 
 	return &evr
@@ -52,14 +53,15 @@ func (er *EventRouter) Start() {
 	go er.routeEvents(er.eventChan)
 
 	er.eventWg.Wait()
+
+	// this is for stopping the event router
+	er.eventWg.Add(1)
 }
 
 func (er *EventRouter) Stop() {
 	if er.eventChan == nil {
 		return
 	}
-
-	er.eventWg.Add(1)
 
 	close(er.stop)
 	close(er.eventChan)
@@ -106,6 +108,12 @@ func (er *EventRouter) Unsubscribe(topic Topic, subscription Subscriber) error {
 		return errors.New("event router not started")
 	}
 
+	er.subscribersLock.Lock()
+	defer er.subscribersLock.Unlock()
+
+	er.topicLock.Lock(topic.String())
+	defer er.topicLock.Unlock(topic.String())
+
 	err := er.removeSubscriber(topic, subscription)
 
 	if err != nil {
@@ -115,12 +123,9 @@ func (er *EventRouter) Unsubscribe(topic Topic, subscription Subscriber) error {
 	return nil
 }
 
+// MUST be called while holding WRITE locks for subscribers AND the matching topic
 func (er *EventRouter) removeSubscriber(topic Topic, subscription Subscriber) error {
-	er.subscribersLock.RLock()
-
 	subscriptions, ok := er.subscribers[topic]
-
-	er.subscribersLock.RUnlock()
 
 	if !ok {
 		// no subscribers for this topic
@@ -147,12 +152,6 @@ func (er *EventRouter) removeSubscriber(topic Topic, subscription Subscriber) er
 	// close the channel
 	close(pair.Channel)
 
-	er.subscribersLock.Lock()
-	defer er.subscribersLock.Unlock()
-
-	er.topicLock.Lock(topic.String())
-	defer er.topicLock.Unlock(topic.String())
-
 	er.subscribers[topic] = append(er.subscribers[topic][:sIndex], er.subscribers[topic][sIndex+1:]...)
 
 	if len(er.subscribers[topic]) < 1 {
@@ -164,11 +163,18 @@ func (er *EventRouter) removeSubscriber(topic Topic, subscription Subscriber) er
 }
 
 func (er *EventRouter) unsubscribeAll() {
+	er.subscribersLock.Lock()
+	defer er.subscribersLock.Unlock()
+
 	for t, pairs := range er.subscribers {
+		er.topicLock.Lock(t.String())
+
 		for _, p := range pairs {
 			// ignore unsubscribe errors
 			_ = er.removeSubscriber(t, p.Subscriber)
 		}
+
+		er.topicLock.Unlock(t.String())
 	}
 }
 
@@ -197,10 +203,9 @@ func (er *EventRouter) routeEvents(eventChan <-chan Event) {
 func (er *EventRouter) routeEvent(event Event) {
 	// load the current subscriber list
 	er.subscribersLock.RLock()
+	defer er.subscribersLock.RUnlock()
 
 	subscribers := maps.Clone(er.subscribers)
-
-	er.subscribersLock.RUnlock()
 
 	if len(subscribers) < 1 {
 		// no subscribers
@@ -213,6 +218,8 @@ func (er *EventRouter) routeEvent(event Event) {
 	wg := sync.WaitGroup{}
 
 	for _, t := range topics {
+		er.topicLock.RLock(t.String())
+
 		if t.Matches(event.RoutingKey) {
 			// send the event to all subscribers of the matching topic
 			// process each topic's subscribers in its own go routine
@@ -224,6 +231,8 @@ func (er *EventRouter) routeEvent(event Event) {
 				}
 			}(&wg, subscribers[t])
 		}
+
+		er.topicLock.RUnlock(t.String())
 	}
 
 	wg.Wait()
