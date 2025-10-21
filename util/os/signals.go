@@ -60,6 +60,14 @@ func StartSignalHandler() {
 				continue
 			}
 
+			// terminals send a SIGHUP signal when the terminal is closed.
+			// reset the signal handler to ensure that we can continue to receive signals in
+			// the event that the process continues to run after the terminal is closed
+			if sig == syscall.SIGHUP {
+				signal.Reset()
+				signal.Notify(sigs)
+			}
+
 			// check for handler that should be called for all signals
 			// if this handler returns false, then we will check for a signal specific handler
 			// this can be useful for logging all signals received by the process or propagating signals
