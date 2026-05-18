@@ -1,6 +1,6 @@
 module github.com/smoxy-io/goSDK
 
-go 1.22.7
+go 1.23
 
 toolchain go1.23.3
 
@@ -13,6 +13,8 @@ require (
 	github.com/magefile/mage v1.15.0
 	github.com/schollz/progressbar/v3 v3.17.1
 	github.com/shurcooL/graphql v0.0.0-20230722043721-ed46e5a46466
+	github.com/spf13/cobra v1.10.2
+	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.9.0
 	github.com/zeebo/xxh3 v1.0.2
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.57.0
@@ -41,6 +43,7 @@ require (
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
