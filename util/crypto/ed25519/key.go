@@ -69,7 +69,7 @@ func NewPrivateKey(pk string) *Key {
 	if len(b) == ed25519.PrivateKeySize {
 		return &Key{
 			privateKey: ed25519.PrivateKey(b),
-			publicKey:  ed25519.PublicKey(b[ed25519.PrivateKeySize:]),
+			publicKey:  ed25519.PublicKey(b[ed25519.PublicKeySize:]),
 		}
 	}
 
