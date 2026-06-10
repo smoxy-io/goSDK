@@ -2,6 +2,9 @@ package auth
 
 import (
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/smoxy-io/goSDK/util/env"
+
+	"path"
 	"time"
 )
 
@@ -15,11 +18,11 @@ const (
 )
 
 type JWTManager struct {
-	secretKey     string
+	secretKey     *PrivateKey
 	tokenDuration time.Duration
 }
 
-func NewJWTManager(secretKey string, tokenDuration time.Duration) *JWTManager {
+func NewJWTManager(secretKey *PrivateKey, tokenDuration time.Duration) *JWTManager {
 	return &JWTManager{
 		secretKey:     secretKey,
 		tokenDuration: tokenDuration,
@@ -66,14 +69,10 @@ func (m *JWTManager) Verify(token string) (*UserClaims, error) {
 }
 
 func (m *JWTManager) parseKeyFunc(token *jwt.Token) (any, error) {
-	if _, ok := token.Method.(*jwt.SigningMethodECDSA); !ok {
-		return nil, jwt.ErrTokenSignatureInvalid
-	}
-
-	return []byte(m.secretKey), nil
+	return m.secretKey.GetPublicKey(), nil
 }
 
-var jwtManager *JWTManager = NewJWTManager("foo", time.Hour)
+var jwtManager *JWTManager = NewJWTManager(mustGetPrivateKey(), time.Hour)
 
 func VerifyJwt(token string) (*UserClaims, error) {
 	return jwtManager.Verify(token)
@@ -81,4 +80,31 @@ func VerifyJwt(token string) (*UserClaims, error) {
 
 func GenerateJwt(user User) (string, error) {
 	return jwtManager.Generate(user)
+}
+
+// mustGetPrivateKey returns the PrivateKey to use for JWT tokens. panics if an error occurs
+func mustGetPrivateKey() *PrivateKey {
+	filePath := getPrivateKeyPath()
+
+	pk, err := NewPrivateKeyFromFile(filePath)
+
+	if err != nil {
+		panic("failed to load private key at: " + filePath + "\nerror: " + err.Error())
+	}
+
+	return pk
+}
+
+func getPrivateKeyPath() string {
+	filePath := env.Get(JwtPrivateKey, DefaultJwtPrivateKey)
+
+	if filePath == "" {
+		return ""
+	}
+
+	if path.IsAbs(filePath) {
+		return filePath
+	}
+
+	return path.Join(env.GetPwd(), filePath)
 }
