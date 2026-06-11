@@ -27,10 +27,10 @@ func (k *PrivateKey) ParseKey() error {
 	}
 
 	switch pk := key.(type) {
-	case *rsa.PrivateKey, *ecdsa.PrivateKey, *ed25519.PrivateKey:
+	case *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey:
 		k.key = pk
-	case ed25519.PrivateKey:
-		k.key = &pk
+	case *ed25519.PrivateKey:
+		k.key = *pk
 	default:
 		return ErrUnsupportedPKCS8KeyType
 	}
@@ -44,7 +44,7 @@ func (k *PrivateKey) GetSigningMethod() jwt.SigningMethod {
 		return jwt.SigningMethodRS512
 	case *ecdsa.PrivateKey:
 		return jwt.SigningMethodES512
-	case *ed25519.PrivateKey:
+	case ed25519.PrivateKey:
 		return jwt.SigningMethodEdDSA
 	default:
 		return jwt.SigningMethodNone
@@ -61,7 +61,7 @@ func (k *PrivateKey) GetPublicKey() any {
 		return &pk.PublicKey
 	case *ecdsa.PrivateKey:
 		return &pk.PublicKey
-	case *ed25519.PrivateKey:
+	case ed25519.PrivateKey:
 		return pk.Public()
 	default:
 		return nil

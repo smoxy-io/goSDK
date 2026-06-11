@@ -42,7 +42,7 @@ func (m *JWTManager) Generate(user User) (string, error) {
 		Issuer:    GetJwtIssuer(),
 	})
 
-	return token.SignedString(m.secretKey)
+	return token.SignedString(m.secretKey.key)
 }
 
 func (m *JWTManager) Verify(token string) (*UserClaims, error) {
