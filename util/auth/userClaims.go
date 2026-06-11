@@ -2,8 +2,9 @@ package auth
 
 import (
 	"context"
-	"github.com/golang-jwt/jwt/v5"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var (
@@ -16,8 +17,8 @@ type UserClaims struct {
 	Expires   int64    `json:"exp,omitempty"`
 	NotBefore int64    `json:"nbf,omitempty"`
 	Issued    int64    `json:"iat,omitempty"`
-	//Type      int      `json:"typ,omitempty"`
-	Issuer string `json:"iss,omitempty"`
+	Type      int      `json:"typ,omitempty"`
+	Issuer    string   `json:"iss,omitempty"`
 }
 
 func (u *UserClaims) GetExpirationTime() (*jwt.NumericDate, error) {

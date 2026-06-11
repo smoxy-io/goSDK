@@ -32,13 +32,14 @@ func NewJWTManager(secretKey *PrivateKey, tokenDuration time.Duration) *JWTManag
 func (m *JWTManager) Generate(user User) (string, error) {
 	now := time.Now()
 
-	token := jwt.NewWithClaims(jwt.SigningMethodES512, jwt.MapClaims{
-		"exp": now.Add(m.tokenDuration).UTC().Unix(),
-		"nbf": now.Add(-1 * time.Second * 5).UTC().Unix(), // support remote clocks running a few seconds behind
-		"sub": user.GetId(),
-		"aud": user.GetStringRoles(),
-		"iat": now.UTC().Unix(),
-		"typ": JwtTypePAuth,
+	token := jwt.NewWithClaims(m.secretKey.GetSigningMethod(), &UserClaims{
+		Expires:   now.Add(m.tokenDuration).UTC().Unix(),
+		NotBefore: now.Add(-1 * time.Second * 5).UTC().Unix(), // support remote clocks running a few seconds behind
+		UserId:    user.GetId(),
+		Roles:     user.GetStringRoles(),
+		Issued:    now.UTC().Unix(),
+		Type:      JwtTypePAuth,
+		Issuer:    GetJwtIssuer(),
 	})
 
 	return token.SignedString(m.secretKey)
