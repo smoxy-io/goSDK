@@ -55,6 +55,22 @@ func (k *Key) PublicKeyString() string {
 	return base64.StdEncoding.EncodeToString(k.publicKey)
 }
 
+func (k *Key) Sign(data []byte) ([]byte, error) {
+	return Sign(k.privateKey, data)
+}
+
+func (k *Key) SignString(data string) (string, error) {
+	return SignString(k.privateKey, data)
+}
+
+func (k *Key) VerifySignature(data []byte, sig []byte) bool {
+	return VerifySignature(k.publicKey, data, sig)
+}
+
+func (k *Key) VerifySignatureString(data string, sig string) bool {
+	return VerifySignatureString(k.publicKey, data, sig)
+}
+
 func NewPrivateKey(pk string) *Key {
 	if pk == "" {
 		return nil
