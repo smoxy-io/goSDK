@@ -3,6 +3,9 @@ package crypto
 type Key interface {
 	Signer
 	Verifier
+
+	PublicKeyString() string
+	PrivateKeyString() string
 }
 
 func Sign(key Signer, data []byte) ([]byte, error) {
