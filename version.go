@@ -1,5 +1,5 @@
 package goSDK
 
 const (
-	Version = "v0.18.0"
+	Version = "v1.18.0"
 )
