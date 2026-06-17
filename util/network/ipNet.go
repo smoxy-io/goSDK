@@ -107,3 +107,9 @@ func NextAddressBlockString(network string) (string, error) {
 
 	return nextIpNet.String(), nil
 }
+
+func IsIpAddress(ip string) bool {
+	_, err := netip.ParseAddr(ip)
+
+	return err == nil
+}
