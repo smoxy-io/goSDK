@@ -73,14 +73,14 @@ func (m *JWTManager) parseKeyFunc(token *jwt.Token) (any, error) {
 	return m.secretKey.GetPublicKey(), nil
 }
 
-var jwtManager *JWTManager = NewJWTManager(mustGetPrivateKey(), time.Hour)
+var jwtManager *JWTManager
 
 func VerifyJwt(token string) (*UserClaims, error) {
-	return jwtManager.Verify(token)
+	return DefaultJwtManager().Verify(token)
 }
 
 func GenerateJwt(user User) (string, error) {
-	return jwtManager.Generate(user)
+	return DefaultJwtManager().Generate(user)
 }
 
 // mustGetPrivateKey returns the PrivateKey to use for JWT tokens. panics if an error occurs
@@ -108,4 +108,14 @@ func getPrivateKeyPath() string {
 	}
 
 	return path.Join(env.GetPwd(), filePath)
+}
+
+func DefaultJwtManager() *JWTManager {
+	if jwtManager != nil {
+		return jwtManager
+	}
+
+	jwtManager = NewJWTManager(mustGetPrivateKey(), time.Hour)
+
+	return jwtManager
 }
