@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 
 	"github.com/hashicorp/vault/shamir"
+	"github.com/smoxy-io/goSDK/util/errors"
 )
 
 func CreateShamirSecret(secret string, parts int, threshold int) ([]string, error) {
