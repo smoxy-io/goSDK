@@ -102,3 +102,28 @@ func GetAs[T IEnvVal](key string, defVal T) T {
 
 	return defVal
 }
+
+func IsEnvVal(val any, noMaps ...bool) bool {
+	switch val.(type) {
+	case bool:
+		return true
+	case int:
+		return true
+	case uint:
+		return true
+	case string:
+		return true
+	case []byte:
+		return true
+	case []string, []bool, []int, []uint:
+		return true
+	case map[string]any:
+		if len(noMaps) != 0 && noMaps[0] {
+			return false
+		}
+
+		return true
+	}
+
+	return false
+}
