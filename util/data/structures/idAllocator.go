@@ -1,24 +1,31 @@
 package structures
 
-import "sync"
+import (
+	"math"
+	"sync"
+)
+
+const (
+	DefaultIdAllocatorCapacity = 1000 // 8KB of memory (1000 * 8 bytes) for buffer
+)
 
 // IdAllocator manages a pool of IDs using a thread-safe ring buffer.
-type IdAllocator[T int | uint | int64 | uint64 | int32 | uint32] struct {
+type IdAllocator struct {
 	mu        *sync.Mutex
-	capacity  T
-	buffer    []T
-	head      T
-	tail      T
-	allocated T
+	capacity  int
+	buffer    []int
+	head      int
+	tail      int
+	allocated int
 }
 
 // Allocate retrieves the next available ID. Returns false if the buffer is exhausted.
-func (a *IdAllocator[T]) Allocate() (T, bool) {
+func (a *IdAllocator) Allocate() (int, bool) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
 	if a.allocated == a.capacity {
-		return 0, false
+		return -1, false
 	}
 
 	id := a.tail
@@ -31,7 +38,7 @@ func (a *IdAllocator[T]) Allocate() (T, bool) {
 }
 
 // Release returns an ID to the ring buffer so it can be reused later.
-func (a *IdAllocator[T]) Release(id T) {
+func (a *IdAllocator) Release(id int) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -46,24 +53,31 @@ func (a *IdAllocator[T]) Release(id T) {
 	a.allocated--
 }
 
-func (a *IdAllocator[T]) Used() T {
+// Used the number of allocated ids
+func (a *IdAllocator) Used() int {
 	return a.allocated
 }
 
-func (a *IdAllocator[T]) Free() T {
+// Free the number of available ids
+func (a *IdAllocator) Free() int {
 	return a.capacity - a.allocated
 }
 
 // NewIdAllocator creates an allocator with a fixed maximum size.
-func NewIdAllocator[T int | uint | int64 | uint64 | int32 | uint32](capacity T) *IdAllocator[T] {
+// the buffer will use 8*capacity bytes of memory (e.g. capacity=1000 uses 8KB of memory)
+func NewIdAllocator(capacity int) *IdAllocator {
 	if capacity <= 0 {
-		capacity = 1024
+		capacity = DefaultIdAllocatorCapacity
 	}
 
-	return &IdAllocator[T]{
+	if capacity > math.MaxInt {
+		capacity = math.MaxInt
+	}
+
+	return &IdAllocator{
 		mu:        &sync.Mutex{},
 		capacity:  capacity,
-		buffer:    make([]T, capacity),
+		buffer:    make([]int, capacity),
 		head:      0,
 		tail:      0,
 		allocated: 0,

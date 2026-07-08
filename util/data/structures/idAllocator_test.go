@@ -7,8 +7,8 @@ import (
 func Test_IdAllocator(t *testing.T) {
 	pool := NewIdAllocator(-5)
 
-	if pool.Free() != 1024 {
-		t.Errorf("Expected free capacity to be 1024, got %d", pool.Free())
+	if pool.Free() != DefaultIdAllocatorCapacity {
+		t.Errorf("Expected free capacity to be %d, got %d", DefaultIdAllocatorCapacity, pool.Free())
 	}
 
 	pool = NewIdAllocator(5)
