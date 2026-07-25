@@ -28,8 +28,7 @@ func (a *IdAllocator) Allocate() (int, bool) {
 		return -1, false
 	}
 
-	id := a.tail
-	a.buffer[a.tail] = id
+	id := a.buffer[a.tail]
 
 	a.tail = (a.tail + 1) % a.capacity
 	a.allocated++
@@ -47,6 +46,11 @@ func (a *IdAllocator) Release(id int) {
 		return
 	}
 
+	// make sure that the id is valid
+	if id < 0 || id >= a.capacity {
+		return
+	}
+
 	a.buffer[a.head] = id
 
 	a.head = (a.head + 1) % a.capacity
@@ -55,11 +59,17 @@ func (a *IdAllocator) Release(id int) {
 
 // Used the number of allocated ids
 func (a *IdAllocator) Used() int {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	return a.allocated
 }
 
 // Free the number of available ids
 func (a *IdAllocator) Free() int {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	return a.capacity - a.allocated
 }
 

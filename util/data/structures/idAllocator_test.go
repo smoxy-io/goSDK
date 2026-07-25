@@ -28,16 +28,16 @@ func Test_IdAllocator(t *testing.T) {
 	}
 
 	// Release 2 IDs back into the ring buffer
-	pool.Release(0)
-	pool.Release(1)
+	pool.Release(3)
+	pool.Release(4)
 
 	// Allocate again to verify the recycled IDs are re-issued
 	for i := 0; i < 2; i++ {
 		if id, ok := pool.Allocate(); !ok {
 			t.Errorf("Failed to re-allocate ID %d", i)
 		} else {
-			if id != 0 && id != 1 {
-				t.Errorf("invalid re-allocated ID %d. expected 0 or 1", id)
+			if id != i+3 {
+				t.Errorf("invalid re-allocated ID %d. expected %d", id, i+3)
 			}
 		}
 	}
