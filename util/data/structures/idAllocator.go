@@ -6,17 +6,16 @@ import (
 )
 
 const (
-	DefaultIdAllocatorCapacity = 1000 // 8KB of memory (1000 * 8 bytes) for buffer
+	DefaultIdAllocatorCapacity = 1000 // 1KB of memory (1000 * 1 byte) for buffer
 )
 
 // IdAllocator manages a pool of IDs using a thread-safe ring buffer.
 type IdAllocator struct {
 	mu        *sync.Mutex
 	capacity  int
-	buffer    []int
-	head      int
-	tail      int
+	buffer    []bool
 	allocated int
+	next      int
 }
 
 // Allocate retrieves the next available ID. Returns false if the buffer is exhausted.
@@ -24,16 +23,18 @@ func (a *IdAllocator) Allocate() (int, bool) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if a.allocated == a.capacity {
+	if a.allocated == a.capacity || a.next == -1 {
 		return -1, false
 	}
 
-	id := a.buffer[a.tail]
+	defer a.updateNext()
 
-	a.tail = (a.tail + 1) % a.capacity
+	next := a.next
+
+	a.buffer[next] = true
 	a.allocated++
 
-	return id, true
+	return next, true
 }
 
 // Release returns an ID to the ring buffer so it can be reused later.
@@ -51,10 +52,20 @@ func (a *IdAllocator) Release(id int) {
 		return
 	}
 
-	a.buffer[a.head] = id
+	if !a.buffer[id] {
+		// id is not allocated, so nothing to release
+		return
+	}
 
-	a.head = (a.head + 1) % a.capacity
+	defer a.updateNext()
+
+	a.buffer[id] = false
 	a.allocated--
+
+	if a.next == -1 {
+		// all ids were allocated prior to this release. set next to this id
+		a.next = id
+	}
 }
 
 // Used the number of allocated ids
@@ -73,8 +84,53 @@ func (a *IdAllocator) Free() int {
 	return a.capacity - a.allocated
 }
 
+// MUST be called while holding the lock
+func (a *IdAllocator) updateNext() {
+	if a.allocated == a.capacity {
+		a.next = -1
+		return
+	}
+
+	next := a.next
+
+	if !a.buffer[next] {
+		// current next is still available
+		// no need to change next pointer
+		if next != a.next {
+			a.next = next
+		}
+
+		return
+	}
+
+	// find the next available id
+	next++
+
+	for {
+		if next == a.capacity {
+			// wrap around to the beginning
+			next = 0
+		}
+
+		if next == a.next {
+			// back where we started. no available ids
+			a.allocated = a.capacity // updating allocated as it should have prevented us from getting to here
+			a.next = -1
+			return
+		}
+
+		if !a.buffer[next] {
+			// this is the next available id
+			a.next = next
+			return
+		}
+
+		next++
+	}
+}
+
 // NewIdAllocator creates an allocator with a fixed maximum size.
-// the buffer will use 8*capacity bytes of memory (e.g. capacity=1000 uses 8KB of memory)
+// the buffer will use capacity bytes of memory (e.g. capacity=1000 uses 1KB of memory)
 func NewIdAllocator(capacity int) *IdAllocator {
 	if capacity <= 0 {
 		capacity = DefaultIdAllocatorCapacity
@@ -87,9 +143,8 @@ func NewIdAllocator(capacity int) *IdAllocator {
 	return &IdAllocator{
 		mu:        &sync.Mutex{},
 		capacity:  capacity,
-		buffer:    make([]int, capacity),
-		head:      0,
-		tail:      0,
+		buffer:    make([]bool, capacity),
+		next:      0,
 		allocated: 0,
 	}
 }

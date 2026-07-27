@@ -15,10 +15,14 @@ func Test_IdAllocator(t *testing.T) {
 
 	// Allocate 5 IDs
 	for i := 0; i < 5; i++ {
-		_, ok := pool.Allocate()
+		id, ok := pool.Allocate()
 
 		if !ok {
 			t.Errorf("Failed to allocate ID %d", i)
+		}
+
+		if id != i {
+			t.Errorf("invalid allocated ID: %d. expected %d", id, i)
 		}
 	}
 
