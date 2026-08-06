@@ -2,6 +2,7 @@ package json
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -24,6 +25,30 @@ func TestToString(t *testing.T) {
 
 	if str != expected {
 		t.Errorf("ToString() = '%v', wanted: '%v'", str, expected)
+	}
+}
+
+func TestToStringPretty(t *testing.T) {
+	obj := TestObj{
+		Foo: "bar\nbaz",
+		Bar: 4678,
+		Baz: []string{"lorim", "ipsum"},
+	}
+
+	expected := strings.TrimSpace(`
+{
+  "foo": "bar\nbaz",
+  "bar": 4678,
+  "baz": [
+    "lorim",
+    "ipsum"
+  ]
+}`)
+
+	str := ToStringPretty(obj)
+
+	if str != expected {
+		t.Errorf("ToStringPretty() =\n'%v',\nwanted:\n'%v'", str, expected)
 	}
 }
 

@@ -12,6 +12,16 @@ func ToString[T any](data T) string {
 	return string(b)
 }
 
+func ToStringPretty[T any](data T) string {
+	b, err := json.MarshalIndent(data, "", "  ")
+
+	if err != nil {
+		return ""
+	}
+
+	return string(b)
+}
+
 func FromString[T any](jsonStr string) T {
 	var data T
 
