@@ -3,7 +3,52 @@ package os
 import (
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
+)
+
+// Go signal usage
+//
+// Signals the runtime uses for itself:
+// - SIGPROF: CPU profiling sample delivery
+// - SIGURG: Async preemption
+// - SIGSETXID, SIGCANCEL, SIGSYNCCALL: glibc/musl internals
+// - SIGPIPE: special-case for writes to closed file descriptors
+//
+// Signals with default runtime behavior:
+// - SIGQUIT: full goroutine traceback then exit
+// - SIGABRT: full goroutine traceback then exit
+//
+// Signals that cannot be caught via `_SigNotify`:
+// - SIGSYS
+// - SIGSEGV
+// - SIGBUS
+// - SIGFPE
+// - SIGILL
+// - SIGTRAP
+// - SIGSTKFLT
+
+var (
+	notifySigs = []os.Signal{
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGUSR1,
+		syscall.SIGUSR2,
+		syscall.SIGALRM,
+		syscall.SIGTERM,
+		syscall.SIGCHLD,
+		syscall.SIGCONT,
+		syscall.SIGTSTP,
+		syscall.SIGTTIN,
+		syscall.SIGTTOU,
+		syscall.SIGXCPU,
+		syscall.SIGXFSZ,
+		syscall.SIGVTALRM,
+		syscall.SIGWINCH,
+		syscall.SIGIO,
+		syscall.SIGQUIT,
+		syscall.SIGABRT,
+	}
 )
 
 // SignalHandler defines the function signature for a signal handler function
@@ -16,6 +61,8 @@ var sigHandlerChan chan bool
 var sigHandlers map[os.Signal]SignalHandler = map[os.Signal]SignalHandler{
 	syscall.SIGINT:  DefaultSigIntHandler,
 	syscall.SIGTERM: DefaultSigTermHandler,
+	syscall.SIGQUIT: DefaultSigQuitHandler,
+	syscall.SIGABRT: DefaultSigAbrtHandler,
 }
 
 // RegisterSignalHandler registers a handler function for a signal.
@@ -41,7 +88,8 @@ func StartSignalHandler() {
 
 	// by default, only SIGINT or SIGTERM will cause the process to exit
 	// this can be overridden by registering a custom handler for SIGINT or SIGTERM
-	signal.Notify(sigs)
+	// SIGQUIT and SIGABRT also preserve the default runtime behavior, but can be overridden by custom handlers
+	signal.Notify(sigs, notifySigs...)
 
 	go func() {
 		defer close(sigHandlerChan)
@@ -54,18 +102,12 @@ func StartSignalHandler() {
 		for {
 			sig := <-sigs
 
-			if sig == syscall.SIGURG {
-				// ignore this signal as it doesn't mean anything and is used internally by go
-				// so it shouldn't be used in the application
-				continue
-			}
-
 			// terminals send a SIGHUP signal when the terminal is closed.
 			// reset the signal handler to ensure that we can continue to receive signals in
 			// the event that the process continues to run after the terminal is closed
 			if sig == syscall.SIGHUP {
 				signal.Reset()
-				signal.Notify(sigs)
+				signal.Notify(sigs, notifySigs...)
 			}
 
 			// check for handler that should be called for all signals
@@ -101,6 +143,25 @@ func DefaultSigIntHandler(_ os.Signal) bool {
 }
 
 func DefaultSigTermHandler(_ os.Signal) bool {
+	return true
+}
+
+func DefaultSigQuitHandler(_ os.Signal) bool {
+	return DumpTraceAndExit()
+}
+
+func DefaultSigAbrtHandler(_ os.Signal) bool {
+	return DumpTraceAndExit()
+}
+
+// DumpTraceAndExit writes a full stack trace to stderr and exits the process
+func DumpTraceAndExit() bool {
+	buf := make([]byte, 1<<22)
+	n := runtime.Stack(buf, true)
+
+	_, _ = os.Stderr.Write(buf[:n])
+	_, _ = os.Stderr.Write([]byte{'\n'})
+
 	return true
 }
 
