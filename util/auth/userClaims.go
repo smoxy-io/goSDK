@@ -11,6 +11,11 @@ var (
 	jwtIssuer = ""
 )
 
+type Actor struct {
+	Sub string `json:"sub,omitempty"`
+	Act *Actor `json:"act,omitempty"`
+}
+
 type UserClaims struct {
 	UserId    string   `json:"sub,omitempty"`
 	Roles     []string `json:"aud,omitempty"`
@@ -19,6 +24,8 @@ type UserClaims struct {
 	Issued    int64    `json:"iat,omitempty"`
 	Type      int      `json:"typ,omitempty"`
 	Issuer    string   `json:"iss,omitempty"`
+	Act       *Actor   `json:"act,omitempty"`
+	Id        string   `json:"jti,omitempty"`
 }
 
 func (u *UserClaims) GetExpirationTime() (*jwt.NumericDate, error) {
@@ -73,6 +80,37 @@ func (u *UserClaims) IssuedTime() time.Time {
 
 func (u *UserClaims) NotBeforeTime() time.Time {
 	return time.Unix(u.NotBefore, 0)
+}
+
+func (u *UserClaims) GetActor() string {
+	if u.Act == nil {
+		return ""
+	}
+
+	return u.Act.Sub
+}
+
+func (u *UserClaims) GetActors() []string {
+	if u.Act == nil {
+		return nil
+	}
+
+	actors := []string{
+		u.Act.Sub,
+	}
+
+	if u.Act.Act == nil {
+		return actors
+	}
+
+	a := u.Act.Act
+
+	for a != nil {
+		actors = append(actors, a.Sub)
+		a = a.Act
+	}
+
+	return actors
 }
 
 func GetUserIdFromCtx(ctx context.Context) string {

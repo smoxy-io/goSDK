@@ -1,8 +1,10 @@
 module github.com/smoxy-io/goSDK
 
-go 1.25.3
+go 1.26
 
 require (
+	github.com/MicahParks/jwkset v0.11.3
+	github.com/MicahParks/keyfunc/v3 v3.8.2
 	github.com/dgraph-io/dgo/v230 v230.0.1
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-errors/errors v1.5.1
@@ -69,6 +71,7 @@ require (
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/term v0.40.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	rsc.io/qr v0.2.0 // indirect

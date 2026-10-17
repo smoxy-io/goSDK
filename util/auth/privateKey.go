@@ -8,6 +8,7 @@ import (
 	"errors"
 	"os"
 
+	"github.com/MicahParks/jwkset"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/ed25519"
 )
@@ -48,6 +49,19 @@ func (k *PrivateKey) GetSigningMethod() jwt.SigningMethod {
 		return jwt.SigningMethodEdDSA
 	default:
 		return jwt.SigningMethodNone
+	}
+}
+
+func (k *PrivateKey) GetJwkAlgorithm() jwkset.ALG {
+	switch k.key.(type) {
+	case *rsa.PrivateKey:
+		return jwkset.AlgRS512
+	case *ecdsa.PrivateKey:
+		return jwkset.AlgES512
+	case ed25519.PrivateKey:
+		return jwkset.AlgEdDSA
+	default:
+		return jwkset.AlgNone
 	}
 }
 
