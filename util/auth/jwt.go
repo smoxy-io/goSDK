@@ -162,6 +162,14 @@ func (m *JWTManager) Generate(user User) (string, error) {
 		Id:        rand.Text(),
 	}
 
+	if scope, ok := user.(Scope); ok {
+		claims.Scope = scope.GetScope()
+	}
+
+	if extra, ok := user.(Extra); ok {
+		claims.Extra = extra.GetExtra()
+	}
+
 	token := jwt.NewWithClaims(key.GetSigningMethod(), claims)
 
 	return token.SignedString(key.key)
@@ -205,6 +213,14 @@ func (m *JWTManager) GenerateDelegate(user User, actor string, claims *UserClaim
 			Sub: actor,
 			Act: claims.Act,
 		},
+	}
+
+	if scope, ok := user.(Scope); ok {
+		claims.Scope = scope.GetScope()
+	}
+
+	if extra, ok := user.(Extra); ok {
+		newClaims.Extra = extra.GetExtra()
 	}
 
 	for _, role := range newClaims.Roles {

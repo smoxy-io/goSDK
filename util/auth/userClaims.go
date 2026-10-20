@@ -17,15 +17,17 @@ type Actor struct {
 }
 
 type UserClaims struct {
-	UserId    string   `json:"sub,omitempty"`
-	Roles     []string `json:"aud,omitempty"`
-	Expires   int64    `json:"exp,omitempty"`
-	NotBefore int64    `json:"nbf,omitempty"`
-	Issued    int64    `json:"iat,omitempty"`
-	Type      int      `json:"typ,omitempty"`
-	Issuer    string   `json:"iss,omitempty"`
-	Act       *Actor   `json:"act,omitempty"`
-	Id        string   `json:"jti,omitempty"`
+	UserId    string            `json:"sub,omitempty"`
+	Roles     []string          `json:"aud,omitempty"`
+	Expires   int64             `json:"exp,omitempty"`
+	NotBefore int64             `json:"nbf,omitempty"`
+	Issued    int64             `json:"iat,omitempty"`
+	Type      int               `json:"typ,omitempty"`
+	Issuer    string            `json:"iss,omitempty"`
+	Act       *Actor            `json:"act,omitempty"`
+	Id        string            `json:"jti,omitempty"`
+	Scope     string            `json:"scope,omitempty"`
+	Extra     map[string]string `json:"extra,omitempty"`
 }
 
 func (u *UserClaims) GetExpirationTime() (*jwt.NumericDate, error) {
@@ -111,6 +113,14 @@ func (u *UserClaims) GetActors() []string {
 	}
 
 	return actors
+}
+
+func (u *UserClaims) GetScope() string {
+	return u.Scope
+}
+
+func (u *UserClaims) GetExtra() map[string]string {
+	return u.Extra
 }
 
 func GetUserIdFromCtx(ctx context.Context) string {
